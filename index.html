@@ -131,7 +131,7 @@ const KEY="semillapp_v1";
 const blank={productos:[],costos:{},inventario:[],clientes:[],pedidos:[],despachos:[],proveedores:[],compras:[],insumos:[]};
 let db=load();
 function load(){try{return Object.assign({},JSON.parse(JSON.stringify(blank)),JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){return JSON.parse(JSON.stringify(blank))}}
-function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function save(){db._ts=Date.now();localStorage.setItem(KEY,JSON.stringify(db));schedulePush();}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
 const $=s=>document.querySelector(s);
 const money=n=>"$"+(Number(n)||0).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -198,7 +198,8 @@ function renderNav(){
 }
 function go(t){tab=t;renderNav();render();window.scrollTo(0,0);}
 function menuMas(){openModal("Datos y respaldo",
-  '<p class="muted" style="margin-top:0">Tus datos se guardan en este dispositivo.</p>'+
+  '<button class="btn" style="width:100%;margin-bottom:10px" onclick="syncModal()">☁ Sincronización en la nube</button>'+
+  '<p class="muted" style="margin-top:0">Tus datos se guardan en este dispositivo'+(wsCode?' y se sincronizan (espacio: '+esc(wsCode)+')':'')+'.</p>'+
   '<button class="btn sec" style="width:100%;margin-bottom:8px" onclick="backup()">⬇ Exportar respaldo (.json)</button>'+
   '<button class="btn sec" style="width:100%;margin-bottom:8px" onclick="document.getElementById(\'imp\').click()">⬆ Importar respaldo</button>'+
   '<button class="btn ghost" style="width:100%" onclick="cargarDemo()">Cargar datos de ejemplo</button>',null);}
@@ -593,8 +594,47 @@ function cargarDemo(){
   save();go("dashboard");toast("Datos de ejemplo cargados");
 }
 
+/* ===== Sincronización en la nube ===== */
+const WSKEY="semillapp_ws";
+let wsCode=localStorage.getItem(WSKEY)||"";
+let syncState=wsCode?"ok":"off";let pushTimer=null;
+function cloudGet(code){return fetch("/api/data?code="+encodeURIComponent(code),{cache:"no-store"}).then(r=>r.json());}
+function cloudPut(code,obj){return fetch("/api/data?code="+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj)}).then(r=>r.json());}
+function schedulePush(){if(!wsCode)return;clearTimeout(pushTimer);pushTimer=setTimeout(doPush,1500);}
+function doPush(){if(!wsCode)return;syncState="sync";cloudPut(wsCode,db).then(r=>{syncState=(r&&r.ok)?"ok":"error";if(r&&r.error)toast("Error al sincronizar");}).catch(()=>{syncState="offline";});}
+function pullCloud(opts){opts=opts||{};if(!wsCode)return Promise.resolve();syncState="sync";return cloudGet(wsCode).then(r=>{if(r&&r.data){const cloud=r.data;if(opts.force||(cloud._ts||0)>=(db._ts||0)){db=Object.assign({},JSON.parse(JSON.stringify(blank)),cloud);localStorage.setItem(KEY,JSON.stringify(db));render();}}syncState="ok";}).catch(()=>{syncState="offline";});}
+function syncNow(){if(!wsCode)return toast("No estás sincronizando");syncState="sync";cloudGet(wsCode).then(r=>{if(r&&r.data&&(r.data._ts||0)>(db._ts||0)){db=Object.assign({},JSON.parse(JSON.stringify(blank)),r.data);localStorage.setItem(KEY,JSON.stringify(db));}}).then(()=>cloudPut(wsCode,db)).then(()=>{syncState="ok";closeModal();render();toast("Sincronizado");}).catch(()=>{syncState="offline";toast("Sin conexión");});}
+function tieneDatos(o){return o&&((o.productos&&o.productos.length)||(o.clientes&&o.clientes.length)||(o.pedidos&&o.pedidos.length)||(o.inventario&&o.inventario.length));}
+function conectarSync(){
+  const code=($("#ws_code").value||"").trim();
+  if(code.length<6)return toast("El código debe tener al menos 6 caracteres");
+  toast("Conectando…");
+  cloudGet(code).then(r=>{
+    const cloud=r&&r.data;const cloudTiene=tieneDatos(cloud);const localTiene=tieneDatos(db);
+    const activar=()=>{wsCode=code;localStorage.setItem(WSKEY,code);};
+    if(cloudTiene){
+      if(localTiene&&!confirm("Ese código ya tiene datos en la nube.\n\nAceptar = traer los datos de la NUBE (reemplaza los de este dispositivo).\nCancelar = subir los de ESTE dispositivo (reemplaza la nube).")){
+        activar();doPush();closeModal();render();toast("Conectado · se subieron los datos de este dispositivo");return;
+      }
+      activar();db=Object.assign({},JSON.parse(JSON.stringify(blank)),cloud);localStorage.setItem(KEY,JSON.stringify(db));closeModal();render();toast("Conectado · datos de la nube cargados");
+    } else {activar();doPush();closeModal();render();toast("Conectado · este dispositivo inició el espacio");}
+  }).catch(()=>toast("No pude conectar con el servidor"));
+}
+function desconectarSync(){if(!confirm("¿Desconectar la sincronización? Los datos quedan solo en este dispositivo."))return;wsCode="";localStorage.removeItem(WSKEY);syncState="off";closeModal();render();toast("Sincronización desactivada");}
+function syncModal(){
+  const est=wsCode?('Conectado al espacio <b>'+esc(wsCode)+'</b>. Tus dispositivos con el mismo código comparten los datos.'):'No estás sincronizando: los datos viven solo en este dispositivo.';
+  openModal("Sincronización en la nube",
+    '<p class="muted" style="margin-top:0">'+est+'</p>'+
+    '<div class="field"><label>Código de espacio (el mismo en PC y celular)</label><input id="ws_code" value="'+esc(wsCode)+'" placeholder="ej: semillas-don-jose-2026"></div>'+
+    '<div class="hint">Elegí un código largo y secreto. Quien tenga el código puede ver y editar tus datos, así que no lo compartas.</div>'+
+    (wsCode?'<button class="btn" style="width:100%;margin-top:12px" onclick="syncNow()">🔄 Sincronizar ahora</button><button class="btn ghost" style="width:100%;margin-top:8px" onclick="desconectarSync()">Desconectar este dispositivo</button>':'<button class="btn" style="width:100%;margin-top:12px" onclick="conectarSync()">Conectar y sincronizar</button>'),
+    null);
+}
+
 /* ===== Init ===== */
 renderNav();render();
+if(wsCode){pullCloud({}).catch(function(){});}
+document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&wsCode){pullCloud({});}});
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
 </script>
 </body>
