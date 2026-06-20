@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SemillApp — Gestión de planta de semillas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2f7d3a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SemillApp">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#0f1410; --panel:#161d17; --panel2:#1d261e; --line:#2a352b;
+    --text:#e7efe6; --muted:#93a392; --green:#3fa34d; --green2:#2f7d3a;
+    --accent:#7bc47f; --amber:#d8a13a; --red:#d9534f; --blue:#5b8def;
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+  a{color:var(--accent)}
+  .app{display:flex;min-height:100vh}
+  .sidebar{width:220px;background:var(--panel);border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;padding:6px 8px 16px}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--green),var(--accent));display:flex;align-items:center;justify-content:center;font-size:18px}
+  .nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:none;color:var(--muted);padding:10px 12px;border-radius:8px;cursor:pointer;font-size:14px;margin-bottom:2px}
+  .nav button:hover{background:var(--panel2);color:var(--text)}
+  .nav button.active{background:var(--green2);color:#fff}
+  .nav .ico{width:18px;text-align:center}
+  .side-foot{margin-top:auto;font-size:11px;color:var(--muted);padding:8px}
+  .side-foot button{width:100%;margin-top:6px}
+  .main{flex:1;padding:24px 28px;max-width:1200px}
+  .head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+  .head h1{margin:0;font-size:22px}
+  .head .sub{color:var(--muted);font-size:13px;margin-top:2px}
+  .grid{display:grid;gap:14px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+  .kpi .label{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .kpi .val{font-size:26px;font-weight:700;margin-top:6px}
+  .kpi .val.green{color:var(--accent)} .kpi .val.amber{color:var(--amber)} .kpi .val.red{color:var(--red)}
+  .btn{background:var(--green);color:#fff;border:none;padding:9px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
+  .btn:hover{background:var(--green2)}
+  .btn.sec{background:var(--panel2);color:var(--text);border:1px solid var(--line)}
+  .btn.sec:hover{border-color:var(--accent)}
+  .btn.sm{padding:5px 9px;font-size:12px}
+  .btn.danger{background:none;color:var(--red);border:1px solid transparent}
+  .btn.danger:hover{border-color:var(--red)}
+  .btn.ghost{background:none;color:var(--muted);border:1px solid var(--line)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+  tr:hover td{background:var(--panel2)}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .tag{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+  .tag.b{background:rgba(91,141,239,.15);color:var(--blue)}
+  .tag.g{background:rgba(63,163,77,.18);color:var(--accent)}
+  .tag.a{background:rgba(216,161,58,.18);color:var(--amber)}
+  .tag.r{background:rgba(217,83,79,.18);color:var(--red)}
+  .tag.m{background:var(--panel2);color:var(--muted)}
+  .empty{text-align:center;color:var(--muted);padding:40px}
+  input,select,textarea{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:9px 11px;font-size:13px;font-family:inherit;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}
+  .field{margin-bottom:12px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50;overflow:auto}
+  .modal-bg.show{display:flex}
+  .modal{background:var(--panel);border:1px solid var(--line);border-radius:14px;width:100%;max-width:600px;padding:22px}
+  .modal h2{margin:0 0 16px;font-size:18px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+  .muted{color:var(--muted)}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .line-items th, .line-items td{padding:7px 8px}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green2);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;opacity:0;transition:.3s;z-index:99;pointer-events:none}
+  .toast.show{opacity:1}
+  .bottomnav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--line);z-index:40;padding-bottom:env(safe-area-inset-bottom)}
+  .bottomnav .bn-row{display:flex}
+  .bottomnav button{flex:1;background:none;border:none;color:var(--muted);padding:8px 2px 6px;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  .bottomnav button .ico{font-size:18px}
+  .bottomnav button.active{color:var(--accent)}
+  .menu-btn{display:none}
+  @media(max-width:720px){
+    .sidebar{display:none}
+    .main{padding:14px 14px 84px}
+    .bottomnav{display:block}
+    .head h1{font-size:19px}
+    .card{padding:13px;overflow-x:auto}
+    .modal-bg{padding:0;align-items:flex-end}
+    .modal{max-width:100%;border-radius:16px 16px 0 0;max-height:92vh;overflow:auto}
+    .row2{grid-template-columns:1fr}
+    table{min-width:560px}
+    .menu-btn{display:inline-flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;margin-bottom:12px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">🌱</span> SemillApp</div>
+    <nav class="nav" id="nav"></nav>
+    <div class="side-foot">
+      Datos guardados en este dispositivo.
+      <button class="btn sec sm" onclick="backup()">⬇ Exportar respaldo</button>
+      <button class="btn ghost sm" onclick="document.getElementById('imp').click()">⬆ Importar respaldo</button>
+      <input type="file" id="imp" accept=".json" style="display:none" onchange="restore(event)">
+      <button class="btn ghost sm" onclick="cargarDemo()">Cargar datos de ejemplo</button>
+    </div>
+  </aside>
+  <main class="main" id="view"></main>
+</div>
+<nav class="bottomnav" id="bottomnav"></nav>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ Estado / Persistencia ============ */
+const KEY="semillapp_v1";
+const blank={productos:[],costos:{},inventario:[],clientes:[],pedidos:[],despachos:[]};
+let db=load();
+function load(){try{return Object.assign({},blank,JSON.parse(localStorage.getItem(KEY)||"{}"))}catch(e){return JSON.parse(JSON.stringify(blank))}}
+function save(){localStorage.setItem(KEY,JSON.stringify(db));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+const $=s=>document.querySelector(s);
+const money=n=>"$"+(Number(n)||0).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2});
+const num=n=>(Number(n)||0).toLocaleString("es-AR");
+function toast(m){const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2200);}
+
+/* ============ Helpers de negocio ============ */
+function prod(id){return db.productos.find(p=>p.id===id)}
+function costoBolsa(pid){return (db.costos[pid]||[]).reduce((s,c)=>s+(Number(c.monto)||0),0)}
+function producido(pid){return db.inventario.filter(m=>m.productoId===pid).reduce((s,m)=>s+(Number(m.cantidad)||0),0)}
+function vendido(pid){let t=0;db.pedidos.forEach(o=>{if(o.estado!=="borrador")o.items.forEach(it=>{if(it.productoId===pid)t+=Number(it.cantidad)||0})});return t}
+function stock(pid){return producido(pid)-vendido(pid)}
+function cliente(id){return db.clientes.find(c=>c.id===id)}
+function totalPedido(o){return o.items.reduce((s,it)=>s+(Number(it.cantidad)||0)*(Number(it.precio)||0),0)}
+function costoPedido(o){return o.items.reduce((s,it)=>s+(Number(it.cantidad)||0)*costoBolsa(it.productoId),0)}
+
+/* ============ Navegación ============ */
+const TABS=[
+  {id:"dashboard",ico:"📊",label:"Panel"},
+  {id:"productos",ico:"🌾",label:"Productos"},
+  {id:"costos",ico:"🧮",label:"Costos"},
+  {id:"inventario",ico:"📦",label:"Inventario"},
+  {id:"clientes",ico:"👥",label:"Clientes"},
+  {id:"pedidos",ico:"🧾",label:"Pedidos / Ventas"},
+  {id:"despachos",ico:"🚚",label:"Despachos"},
+];
+let tab="dashboard";
+const SHORT={dashboard:"Panel",productos:"Prod.",costos:"Costos",inventario:"Stock",clientes:"Clientes",pedidos:"Ventas",despachos:"Despacho"};
+function renderNav(){
+  $("#nav").innerHTML=TABS.map(t=>`<button class="${t.id===tab?'active':''}" onclick="go('${t.id}')"><span class="ico">${t.ico}</span>${t.label}</button>`).join("");
+  $("#bottomnav").innerHTML=`<div class="bn-row">`+TABS.map(t=>`<button class="${t.id===tab?'active':''}" onclick="go('${t.id}')"><span class="ico">${t.ico}</span>${SHORT[t.id]}</button>`).join("")+`</div>`;
+}
+function go(t){tab=t;renderNav();render();window.scrollTo(0,0);}
+function menuMas(){
+  openModal("Datos y respaldo",`
+    <p class="muted" style="margin-top:0">Tus datos se guardan en este dispositivo.</p>
+    <button class="btn sec" style="width:100%;margin-bottom:8px" onclick="backup()">⬇ Exportar respaldo (.json)</button>
+    <button class="btn sec" style="width:100%;margin-bottom:8px" onclick="document.getElementById('imp').click()">⬆ Importar respaldo</button>
+    <button class="btn ghost" style="width:100%" onclick="cargarDemo()">Cargar datos de ejemplo</button>
+  `,null);
+}
+
+/* ============ Render principal ============ */
+function render(){({dashboard:vDashboard,productos:vProductos,costos:vCostos,inventario:vInventario,clientes:vClientes,pedidos:vPedidos,despachos:vDespachos})[tab]();}
+function head(title,sub,btn){return `<button class="menu-btn" onclick="menuMas()">⚙ Datos y respaldo</button><div class="head"><div><h1>${title}</h1>${sub?`<div class="sub">${sub}</div>`:""}</div><div>${btn||""}</div></div>`;}
+
+/* ---------- PANEL ---------- */
+function vDashboard(){
+  const nProd=db.productos.length;
+  const stockTotal=db.productos.reduce((s,p)=>s+stock(p.id),0);
+  const ventasConf=db.pedidos.filter(o=>o.estado!=="borrador");
+  const ingresos=ventasConf.reduce((s,o)=>s+totalPedido(o),0);
+  const costos=ventasConf.reduce((s,o)=>s+costoPedido(o),0);
+  const margen=ingresos-costos;
+  const margenPct=ingresos?(margen/ingresos*100):0;
+  const pendientes=db.pedidos.filter(o=>o.estado==="confirmado").length;
+  const enCamino=db.despachos.filter(d=>d.estado!=="entregado").length;
+  let bajoStock=db.productos.filter(p=>stock(p.id)<=10);
+  let html=head("Panel general","Resumen de la planta al "+new Date().toLocaleDateString("es-AR"));
+  html+=`<div class="grid kpis">
+    ${kpi("Productos",nProd)}
+    ${kpi("Stock total (bolsas)",num(stockTotal))}
+    ${kpi("Ingresos por ventas",money(ingresos),"green")}
+    ${kpi("Margen bruto",money(margen)+" · "+margenPct.toFixed(0)+"%",margen>=0?"green":"red")}
+    ${kpi("Pedidos por despachar",pendientes,pendientes?"amber":"")}
+    ${kpi("Despachos en curso",enCamino,enCamino?"amber":"")}
+  </div>`;
+  html+=`<div class="card" style="margin-top:18px"><h3 style="margin:0 0 10px">Rentabilidad por producto</h3>`;
+  if(!nProd){html+=`<div class="empty">Aún no cargaste productos. Empezá en la pestaña <b>Productos</b> o cargá datos de ejemplo.</div>`;}
+  else{
+    html+=`<table><thead><tr><th>Producto</th><th class="num">Costo/bolsa</th><th class="num">Precio</th><th class="num">Margen</th><th class="num">Stock</th></tr></thead><tbody>`;
+    db.productos.forEach(p=>{
+      const c=costoBolsa(p.id),pr=Number(p.precioVenta)||0,m=pr-c,mp=pr?(m/pr*100):0;
+      html+=`<tr><td>${p.nombre} <span class="muted">· ${p.cultivo||""}</span></td>
+        <td class="num">${money(c)}</td><td class="num">${money(pr)}</td>
+        <td class="num" style="color:${m>=0?'var(--accent)':'var(--red)'}">${money(m)} ${pr?`<span class="muted">(${mp.toFixed(0)}%)</span>`:""}</td>
+        <td class="num">${num(stock(p.id))}</td></tr>`;
+    });
+    html+=`</tbody></table>`;
+  }
+  html+=`</div>`;
+  if(bajoStock.length){
+    html+=`<div class="card" style="margin-top:14px;border-color:var(--amber)"><h3 style="margin:0 0 8px;color:var(--amber)">⚠ Stock bajo (≤10 bolsas)</h3>`+
+      bajoStock.map(p=>`${p.nombre}: <b>${num(stock(p.id))}</b>`).join(" · ")+`</div>`;
+  }
+  $("#view").innerHTML=html;
+}
+function kpi(label,val,cls){return `<div class="card kpi"><div class="label">${label}</div><div class="val ${cls||""}">${val}</div></div>`;}
+
+/* ---------- PRODUCTOS ---------- */
+function vProductos(){
+  let html=head("Productos","Variedades de semilla que producís",`<button class="btn" onclick="formProducto()">+ Nuevo producto</button>`);
+  if(!db.productos.length){html+=`<div class="card"><div class="empty">Sin productos todavía.<br><button class="btn" style="margin-top:12px" onclick="formProducto()">+ Crear el primero</button></div></div>`;}
+  else{
+    html+=`<div class="card"><table><thead><tr><th>Nombre</th><th>Cultivo</th><th class="num">Kg/bolsa</th><th class="num">Costo/bolsa</th><th class="num">Precio venta</th><th class="num">Margen</th><th></th></tr></thead><tbody>`;
+    db.productos.forEach(p=>{
+      const c=costoBolsa(p.id),pr=Number(p.precioVenta)||0,m=pr-c;
+      html+=`<tr><td><b>${p.nombre}</b></td><td>${p.cultivo||"-"}</td><td class="num">${p.kgPorBolsa||"-"}</td>
+        <td class="num">${money(c)}</td><td class="num">${money(pr)}</td>
+        <td class="num" style="color:${m>=0?'var(--accent)':'var(--red)'}">${money(m)}</td>
+        <td class="num"><button class="btn sm sec" onclick="formProducto('${p.id}')">Editar</button> <button class="btn sm danger" onclick="delProducto('${p.id}')">🗑</button></td></tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+  $("#view").innerHTML=html;
+}
+function formProducto(id){
+  const p=id?prod(id):{};
+  openModal(`${id?"Editar":"Nuevo"} producto`,`
+    <div class="field"><label>Nombre *</label><input id="f_nombre" value="${p.nombre||""}" placeholder="Ej: Soja DM 53"></div>
+    <div class="row2">
+      <div class="field"><label>Cultivo</label><input id="f_cultivo" value="${p.cultivo||""}" placeholder="Soja, Maíz, Trigo..."></div>
+      <div class="field"><label>Kg por bolsa</label><input id="f_kg" type="number" value="${p.kgPorBolsa||""}" placeholder="40"></div>
+    </div>
+    <div class="field"><label>Precio de venta por bolsa ($)</label><input id="f_precio" type="number" value="${p.precioVenta||""}" placeholder="0"></div>
+    <div class="hint">El costo por bolsa se calcula en la pestaña <b>Costos</b>. El precio se puede ajustar a mano en cada pedido.</div>
+  `,()=>{
+    const n=$("#f_nombre").value.trim();if(!n)return toast("Falta el nombre");
+    const o={id:id||uid(),nombre:n,cultivo:$("#f_cultivo").value.trim(),kgPorBolsa:$("#f_kg").value,precioVenta:$("#f_precio").value};
+    if(id){Object.assign(prod(id),o);}else{db.productos.push(o);db.costos[o.id]=[];}
+    save();closeModal();render();toast("Producto guardado");
+  });
+}
+function delProducto(id){if(!confirm("¿Eliminar este producto? También se quitan sus costos."))return;db.productos=db.productos.filter(p=>p.id!==id);delete db.costos[id];save();render();toast("Producto eliminado");}
+
+/* ---------- COSTOS ---------- */
+function vCostos(){
+  let html=head("Costos de producción","Componentes del costo por bolsa de cada producto");
+  if(!db.productos.length){html+=`<div class="card"><div class="empty">Primero creá productos.</div></div>`;$("#view").innerHTML=html;return;}
+  db.productos.forEach(p=>{
+    const items=db.costos[p.id]||[];const tot=costoBolsa(p.id);
+    html+=`<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:10px;flex-wrap:wrap">
+        <div><b>${p.nombre}</b> <span class="muted">· costo por bolsa: </span><b style="color:var(--accent)">${money(tot)}</b></div>
+        <button class="btn sm" onclick="formCosto('${p.id}')">+ Agregar componente</button>
+      </div>`;
+    if(!items.length){html+=`<div class="muted" style="padding:6px 0">Sin componentes de costo.</div>`;}
+    else{
+      html+=`<table><thead><tr><th>Concepto</th><th>Tipo</th><th class="num">$/bolsa</th><th></th></tr></thead><tbody>`;
+      items.forEach(c=>{html+=`<tr><td>${c.concepto}</td><td><span class="tag m">${c.tipo||"-"}</span></td><td class="num">${money(c.monto)}</td>
+        <td class="num"><button class="btn sm sec" onclick="formCosto('${p.id}','${c.id}')">Editar</button> <button class="btn sm danger" onclick="delCosto('${p.id}','${c.id}')">🗑</button></td></tr>`;});
+      html+=`</tbody></table>`;
+    }
+    html+=`</div>`;
+  });
+  $("#view").innerHTML=html;
+}
+function formCosto(pid,cid){
+  const c=cid?(db.costos[pid].find(x=>x.id===cid)):{};
+  const tipos=["Semilla","Tratamiento/Curado","Bolsa/Envase","Mano de obra","Energía","Maquinaria","Análisis/Calidad","Flete interno","Otro"];
+  openModal(`${cid?"Editar":"Nuevo"} componente de costo`,`
+    <div class="field"><label>Concepto *</label><input id="c_concepto" value="${c.concepto||""}" placeholder="Ej: Semilla base"></div>
+    <div class="row2">
+      <div class="field"><label>Tipo</label><select id="c_tipo">${tipos.map(t=>`<option ${c.tipo===t?"selected":""}>${t}</option>`).join("")}</select></div>
+      <div class="field"><label>Costo por bolsa ($)</label><input id="c_monto" type="number" value="${c.monto||""}" placeholder="0"></div>
+    </div>
+    <div class="hint">Cargá cuánto aporta este concepto al costo de <b>una</b> bolsa.</div>
+  `,()=>{
+    const con=$("#c_concepto").value.trim();if(!con)return toast("Falta el concepto");
+    const o={id:cid||uid(),concepto:con,tipo:$("#c_tipo").value,monto:$("#c_monto").value};
+    db.costos[pid]=db.costos[pid]||[];
+    if(cid){Object.assign(db.costos[pid].find(x=>x.id===cid),o);}else{db.costos[pid].push(o);}
+    save();closeModal();render();toast("Costo guardado");
+  });
+}
+function delCosto(pid,cid){db.costos[pid]=db.costos[pid].filter(x=>x.id!==cid);save();render();}
+
+/* ---------- INVENTARIO ---------- */
+function vInventario(){
+  let html=head("Inventario","Lotes producidos y stock disponible",`<button class="btn" onclick="formLote()">+ Registrar producción</button>`);
+  html+=`<div class="grid kpis" style="margin-bottom:16px">`;
+  db.productos.forEach(p=>{const s=stock(p.id);html+=kpi(p.nombre,num(s)+" bolsas",s<=10?"amber":"green");});
+  html+=`</div>`;
+  if(!db.inventario.length){html+=`<div class="card"><div class="empty">Sin movimientos de producción.</div></div>`;}
+  else{
+    html+=`<div class="card"><h3 style="margin:0 0 10px">Lotes producidos</h3><table><thead><tr><th>Fecha</th><th>Producto</th><th>Lote</th><th class="num">Bolsas</th><th></th></tr></thead><tbody>`;
+    [...db.inventario].reverse().forEach(m=>{const p=prod(m.productoId);
+      html+=`<tr><td>${m.fecha||"-"}</td><td>${p?p.nombre:"<i>(borrado)</i>"}</td><td>${m.lote||"-"}</td><td class="num">${num(m.cantidad)}</td>
+      <td class="num"><button class="btn sm danger" onclick="delLote('${m.id}')">🗑</button></td></tr>`;});
+    html+=`</tbody></table></div>`;
+  }
+  $("#view").innerHTML=html;
+}
+function formLote(){
+  if(!db.productos.length)return toast("Primero creá un producto");
+  openModal("Registrar producción",`
+    <div class="field"><label>Producto *</label><select id="l_prod">${db.productos.map(p=>`<option value="${p.id}">${p.nombre}</option>`).join("")}</select></div>
+    <div class="row2">
+      <div class="field"><label>N° de lote</label><input id="l_lote" placeholder="L-2026-001"></div>
+      <div class="field"><label>Fecha</label><input id="l_fecha" type="date" value="${new Date().toISOString().slice(0,10)}"></div>
+    </div>
+    <div class="field"><label>Cantidad de bolsas *</label><input id="l_cant" type="number" placeholder="0"></div>
+  `,()=>{
+    const cant=Number($("#l_cant").value);if(!cant)return toast("Indicá la cantidad");
+    db.inventario.push({id:uid(),productoId:$("#l_prod").value,lote:$("#l_lote").value.trim(),fecha:$("#l_fecha").value,cantidad:cant});
+    save();closeModal();render();toast("Producción registrada");
+  });
+}
+function delLote(id){if(!confirm("¿Eliminar este lote?"))return;db.inventario=db.inventario.filter(m=>m.id!==id);save();render();}
+
+/* ---------- CLIENTES ---------- */
+function vClientes(){
+  let html=head("Clientes","",`<button class="btn" onclick="formCliente()">+ Nuevo cliente</button>`);
+  if(!db.clientes.length){html+=`<div class="card"><div class="empty">Sin clientes todavía.</div></div>`;}
+  else{
+    html+=`<div class="card"><table><thead><tr><th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Dirección</th><th></th></tr></thead><tbody>`;
+    db.clientes.forEach(c=>{html+=`<tr><td><b>${c.nombre}</b></td><td>${c.contacto||"-"}</td><td>${c.telefono||"-"}</td><td>${c.direccion||"-"}</td>
+      <td class="num"><button class="btn sm sec" onclick="formCliente('${c.id}')">Editar</button> <button class="btn sm danger" onclick="delCliente('${c.id}')">🗑</button></td></tr>`;});
+    html+=`</tbody></table></div>`;
+  }
+  $("#view").innerHTML=html;
+}
+function formCliente(id){
+  const c=id?cliente(id):{};
+  openModal(`${id?"Editar":"Nuevo"} cliente`,`
+    <div class="field"><label>Nombre / Razón social *</label><input id="cl_nombre" value="${c.nombre||""}"></div>
+    <div class="row2">
+      <div class="field"><label>Persona de contacto</label><input id="cl_contacto" value="${c.contacto||""}"></div>
+      <div class="field"><label>Teléfono</label><input id="cl_tel" value="${c.telefono||""}"></div>
+    </div>
+    <div class="field"><label>Dirección de entrega</label><input id="cl_dir" value="${c.direccion||""}"></div>
+  `,()=>{
+    const n=$("#cl_nombre").value.trim();if(!n)return toast("Falta el nombre");
+    const o={id:id||uid(),nombre:n,contacto:$("#cl_contacto").value.trim(),telefono:$("#cl_tel").value.trim(),direccion:$("#cl_dir").value.trim()};
+    if(id)Object.assign(cliente(id),o);else db.clientes.push(o);
+    save();closeModal();render();toast("Cliente guardado");
+  });
+}
+function delCliente(id){if(!confirm("¿Eliminar cliente?"))return;db.clientes=db.clientes.filter(c=>c.id!==id);save();render();}
+
+/* ---------- PEDIDOS ---------- */
+function vPedidos(){
+  let html=head("Pedidos / Ventas","El precio de cada renglón se puede ajustar por cliente",`<button class="btn" onclick="formPedido()">+ Nuevo pedido</button>`);
+  if(!db.pedidos.length){html+=`<div class="card"><div class="empty">Sin pedidos todavía.</div></div>`;}
+  else{
+    html+=`<div class="card"><table><thead><tr><th>Fecha</th><th>Cliente</th><th class="num">Bolsas</th><th class="num">Total</th><th class="num">Margen</th><th>Estado</th><th></th></tr></thead><tbody>`;
+    [...db.pedidos].reverse().forEach(o=>{
+      const c=cliente(o.clienteId),bolsas=o.items.reduce((s,i)=>s+Number(i.cantidad||0),0);
+      const tot=totalPedido(o),m=tot-costoPedido(o);
+      const tags={borrador:"m",confirmado:"b",despachado:"g"};
+      html+=`<tr><td>${o.fecha}</td><td>${c?c.nombre:"-"}</td><td class="num">${num(bolsas)}</td><td class="num">${money(tot)}</td>
+        <td class="num" style="color:${m>=0?'var(--accent)':'var(--red)'}">${money(m)}</td>
+        <td><span class="tag ${tags[o.estado]}">${o.estado}</span></td>
+        <td class="num">
+          ${o.estado==="borrador"?`<button class="btn sm" onclick="confirmarPedido('${o.id}')">Confirmar</button> `:""}
+          ${o.estado==="confirmado"?`<button class="btn sm" onclick="crearDespacho('${o.id}')">🚚 Despachar</button> `:""}
+          <button class="btn sm sec" onclick="formPedido('${o.id}')">Ver</button>
+          <button class="btn sm danger" onclick="delPedido('${o.id}')">🗑</button></td></tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+  $("#view").innerHTML=html;
+}
+let tmpItems=[];
+function formPedido(id){
+  if(!db.clientes.length)return toast("Primero creá un cliente");
+  if(!db.productos.length)return toast("Primero creá un producto");
+  const o=id?db.pedidos.find(x=>x.id===id):null;
+  tmpItems=o?JSON.parse(JSON.stringify(o.items)):[];
+  const readonly=o&&o.estado!=="borrador";
+  openModal(`${id?(readonly?"Pedido":"Editar pedido"):"Nuevo pedido"}`,`
+    <div class="row2">
+      <div class="field"><label>Cliente *</label><select id="o_cli" ${readonly?"disabled":""}>${db.clientes.map(c=>`<option value="${c.id}" ${o&&o.clienteId===c.id?"selected":""}>${c.nombre}</option>`).join("")}</select></div>
+      <div class="field"><label>Fecha</label><input id="o_fecha" type="date" value="${o?o.fecha:new Date().toISOString().slice(0,10)}" ${readonly?"disabled":""}></div>
+    </div>
+    <label>Renglones <span class="muted">(podés escribir un precio distinto por cliente)</span></label>
+    <div id="o_items"></div>
+    ${readonly?"":`<button class="btn sec sm" style="margin-top:8px" onclick="addItem()">+ Agregar renglón</button>`}
+    <div id="o_total" style="text-align:right;margin-top:12px;font-size:15px"></div>
+  `,readonly?null:()=>{
+    if(!tmpItems.length)return toast("Agregá al menos un renglón");
+    const data={id:id||uid(),clienteId:$("#o_cli").value,fecha:$("#o_fecha").value,items:tmpItems.filter(i=>i.productoId&&i.cantidad),estado:o?o.estado:"borrador"};
+    if(id)Object.assign(db.pedidos.find(x=>x.id===id),data);else db.pedidos.push(data);
+    save();closeModal();render();toast("Pedido guardado");
+  });
+  renderItems(readonly);
+}
+function renderItems(readonly){
+  const c=$("#o_items");if(!c)return;
+  if(!tmpItems.length&&readonly){c.innerHTML='<div class="muted">Sin renglones</div>';return;}
+  let h=`<table class="line-items"><thead><tr><th>Producto</th><th class="num">Stock</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Subtotal</th><th></th></tr></thead><tbody>`;
+  tmpItems.forEach((it,i)=>{
+    const sub=(Number(it.cantidad)||0)*(Number(it.precio)||0);
+    h+=`<tr><td>${readonly?((prod(it.productoId)||{}).nombre||"-"):
+      `<select onchange="setItem(${i},'productoId',this.value);autoPrecio(${i})">${db.productos.map(p=>`<option value="${p.id}" ${it.productoId===p.id?"selected":""}>${p.nombre}</option>`).join("")}</select>`}</td>
+      <td class="num muted">${it.productoId?num(stock(it.productoId)):"-"}</td>
+      <td class="num" style="max-width:80px">${readonly?num(it.cantidad):`<input type="number" value="${it.cantidad||""}" onchange="setItem(${i},'cantidad',this.value)" style="text-align:right">`}</td>
+      <td class="num" style="max-width:110px">${readonly?money(it.precio):`<input type="number" value="${it.precio||""}" onchange="setItem(${i},'precio',this.value)" style="text-align:right">`}</td>
+      <td class="num">${money(sub)}</td>
+      <td class="num">${readonly?"":`<button class="btn sm danger" onclick="rmItem(${i})">✕</button>`}</td></tr>`;
+  });
+  h+=`</tbody></table>`;c.innerHTML=h;
+  const tot=tmpItems.reduce((s,it)=>s+(Number(it.cantidad)||0)*(Number(it.precio)||0),0);
+  if($("#o_total"))$("#o_total").innerHTML=`Total: <b style="color:var(--accent)">${money(tot)}</b>`;
+}
+function addItem(){tmpItems.push({productoId:db.productos[0].id,cantidad:1,precio:db.productos[0].precioVenta||0});renderItems();}
+function setItem(i,k,v){tmpItems[i][k]=v;renderItems();}
+function autoPrecio(i){const p=prod(tmpItems[i].productoId);if(p)tmpItems[i].precio=p.precioVenta||0;renderItems();}
+function rmItem(i){tmpItems.splice(i,1);renderItems();}
+function confirmarPedido(id){
+  const o=db.pedidos.find(x=>x.id===id);
+  for(const it of o.items){if(stock(it.productoId)<Number(it.cantidad)){if(!confirm(`Stock insuficiente de ${prod(it.productoId).nombre} (hay ${stock(it.productoId)}, pedís ${it.cantidad}). ¿Confirmar igual?`))return;break;}}
+  o.estado="confirmado";save();render();toast("Pedido confirmado — stock reservado");
+}
+function delPedido(id){if(!confirm("¿Eliminar pedido?"))return;db.pedidos=db.pedidos.filter(o=>o.id!==id);db.despachos=db.despachos.filter(d=>d.pedidoId!==id);save();render();}
+
+/* ---------- DESPACHOS ---------- */
+function crearDespacho(pedidoId){
+  if(db.despachos.find(d=>d.pedidoId===pedidoId))return toast("Ese pedido ya tiene despacho");
+  const o=db.pedidos.find(x=>x.id===pedidoId);
+  db.despachos.push({id:uid(),pedidoId,fecha:new Date().toISOString().slice(0,10),transportista:"",remito:"R-"+(db.despachos.length+1).toString().padStart(4,"0"),estado:"preparando"});
+  o.estado="despachado";save();go("despachos");toast("Despacho creado");
+}
+function vDespachos(){
+  let html=head("Despachos / Logística","Preparación, remitos y entregas");
+  if(!db.despachos.length){html+=`<div class="card"><div class="empty">Sin despachos.<br><span class="muted">Confirmá un pedido y tocá "Despachar".</span></div></div>`;$("#view").innerHTML=html;return;}
+  html+=`<div class="card"><table><thead><tr><th>Remito</th><th>Fecha</th><th>Cliente</th><th class="num">Bolsas</th><th>Transportista</th><th>Estado</th><th></th></tr></thead><tbody>`;
+  [...db.despachos].reverse().forEach(d=>{
+    const o=db.pedidos.find(x=>x.id===d.pedidoId);const c=o?cliente(o.clienteId):null;
+    const bolsas=o?o.items.reduce((s,i)=>s+Number(i.cantidad||0),0):0;
+    const tags={preparando:"a",en_camino:"b",entregado:"g"};
+    html+=`<tr><td><b>${d.remito}</b></td><td>${d.fecha}</td><td>${c?c.nombre:"-"}</td><td class="num">${num(bolsas)}</td>
+      <td>${d.transportista||"<span class='muted'>—</span>"}</td>
+      <td><span class="tag ${tags[d.estado]}">${d.estado.replace("_"," ")}</span></td>
+      <td class="num"><button class="btn sm sec" onclick="formDespacho('${d.id}')">Gestionar</button> <button class="btn sm sec" onclick="verRemito('${d.id}')">Remito</button></td></tr>`;
+  });
+  html+=`</tbody></table></div>`;
+  $("#view").innerHTML=html;
+}
+function formDespacho(id){
+  const d=db.despachos.find(x=>x.id===id);
+  openModal("Gestionar despacho "+d.remito,`
+    <div class="row2">
+      <div class="field"><label>Transportista</label><input id="d_trans" value="${d.transportista||""}" placeholder="Nombre / empresa"></div>
+      <div class="field"><label>Fecha</label><input id="d_fecha" type="date" value="${d.fecha}"></div>
+    </div>
+    <div class="field"><label>Estado</label><select id="d_estado">
+      ${["preparando","en_camino","entregado"].map(e=>`<option value="${e}" ${d.estado===e?"selected":""}>${e.replace("_"," ")}</option>`).join("")}
+    </select></div>
+  `,()=>{d.transportista=$("#d_trans").value.trim();d.fecha=$("#d_fecha").value;d.estado=$("#d_estado").value;save();closeModal();render();toast("Despacho actualizado");});
+}
+function verRemito(id){
+  const d=db.despachos.find(x=>x.id===id);const o=db.pedidos.find(x=>x.id===d.pedidoId);const c=o?cliente(o.clienteId):{};
+  const filas=o.items.map(it=>`<tr><td style="padding:6px;border-bottom:1px solid #ccc">${(prod(it.productoId)||{}).nombre||"-"}</td><td style="padding:6px;border-bottom:1px solid #ccc;text-align:right">${num(it.cantidad)}</td></tr>`).join("");
+  const w=window.open("","_blank");
+  w.document.write(`<html><head><title>${d.remito}</title></head><body style="font-family:Arial;padding:40px;color:#111;max-width:700px;margin:auto">
+    <div style="display:flex;justify-content:space-between;border-bottom:2px solid #2f7d3a;padding-bottom:10px">
+      <h1 style="margin:0;color:#2f7d3a">🌱 Remito de despacho</h1><div style="text-align:right"><b>${d.remito}</b><br>${d.fecha}</div></div>
+    <p><b>Cliente:</b> ${c.nombre||"-"}<br><b>Dirección:</b> ${c.direccion||"-"}<br><b>Transportista:</b> ${d.transportista||"-"}</p>
+    <table style="width:100%;border-collapse:collapse;margin-top:14px"><thead><tr style="background:#eee"><th style="padding:6px;text-align:left">Producto</th><th style="padding:6px;text-align:right">Bolsas</th></tr></thead><tbody>${filas}</tbody></table>
+    <p style="margin-top:30px">Firma de recepción: ______________________</p>
+    <button onclick="window.print()" style="margin-top:20px;padding:8px 16px">Imprimir</button>
+  </body></html>`);
+}
+
+/* ============ Modal ============ */
+let onSave=null;
+function openModal(title,body,saveFn){
+  onSave=saveFn;
+  $("#modal").innerHTML=`<h2>${title}</h2>${body}<div class="modal-foot"><button class="btn sec" onclick="closeModal()">Cerrar</button>${saveFn?`<button class="btn" onclick="onSave()">Guardar</button>`:""}</div>`;
+  $("#modalBg").classList.add("show");
+}
+function closeModal(){$("#modalBg").classList.remove("show");onSave=null;}
+$("#modalBg").addEventListener("click",e=>{if(e.target.id==="modalBg")closeModal();});
+
+/* ============ Respaldo ============ */
+function backup(){const b=new Blob([JSON.stringify(db,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="semillapp-respaldo-"+new Date().toISOString().slice(0,10)+".json";a.click();}
+function restore(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{db=Object.assign({},blank,JSON.parse(r.result));save();render();toast("Respaldo importado");}catch(x){toast("Archivo inválido");}};r.readAsText(f);}
+
+/* ============ Datos demo ============ */
+function cargarDemo(){
+  if(db.productos.length&&!confirm("Esto reemplaza los datos actuales por un ejemplo. ¿Continuar?"))return;
+  db=JSON.parse(JSON.stringify(blank));
+  const p1=uid(),p2=uid(),p3=uid();
+  db.productos=[
+    {id:p1,nombre:"Soja DM 53i54",cultivo:"Soja",kgPorBolsa:40,precioVenta:42000},
+    {id:p2,nombre:"Maíz híbrido AX 7822",cultivo:"Maíz",kgPorBolsa:25,precioVenta:185000},
+    {id:p3,nombre:"Trigo Baguette 620",cultivo:"Trigo",kgPorBolsa:40,precioVenta:38000},
+  ];
+  db.costos={
+    [p1]:[{id:uid(),concepto:"Semilla base",tipo:"Semilla",monto:21000},{id:uid(),concepto:"Curado/inoculante",tipo:"Tratamiento/Curado",monto:3500},{id:uid(),concepto:"Bolsa 40kg",tipo:"Bolsa/Envase",monto:1200},{id:uid(),concepto:"Mano de obra",tipo:"Mano de obra",monto:2000},{id:uid(),concepto:"Energía/planta",tipo:"Energía",monto:1500}],
+    [p2]:[{id:uid(),concepto:"Semilla híbrida",tipo:"Semilla",monto:120000},{id:uid(),concepto:"Tratamiento",tipo:"Tratamiento/Curado",monto:9000},{id:uid(),concepto:"Bolsa 25kg",tipo:"Bolsa/Envase",monto:1500},{id:uid(),concepto:"Mano de obra",tipo:"Mano de obra",monto:3000}],
+    [p3]:[{id:uid(),concepto:"Semilla base",tipo:"Semilla",monto:19000},{id:uid(),concepto:"Curado",tipo:"Tratamiento/Curado",monto:2500},{id:uid(),concepto:"Bolsa 40kg",tipo:"Bolsa/Envase",monto:1200},{id:uid(),concepto:"Mano de obra",tipo:"Mano de obra",monto:1800}],
+  };
+  db.inventario=[
+    {id:uid(),productoId:p1,lote:"L-2026-001",fecha:"2026-05-10",cantidad:500},
+    {id:uid(),productoId:p2,lote:"L-2026-002",fecha:"2026-05-15",cantidad:120},
+    {id:uid(),productoId:p3,lote:"L-2026-003",fecha:"2026-05-20",cantidad:300},
+  ];
+  const c1=uid(),c2=uid();
+  db.clientes=[
+    {id:c1,nombre:"Agropecuaria El Surco SA",contacto:"Juan Pérez",telefono:"351-555-1010",direccion:"Ruta 9 km 420, Córdoba"},
+    {id:c2,nombre:"Cooperativa La Esperanza",contacto:"María Gómez",telefono:"341-555-2020",direccion:"Av. Central 1500, Santa Fe"},
+  ];
+  db.pedidos=[
+    {id:uid(),clienteId:c1,fecha:"2026-06-05",estado:"confirmado",items:[{productoId:p1,cantidad:80,precio:42000},{productoId:p3,cantidad:50,precio:38000}]},
+    {id:uid(),clienteId:c2,fecha:"2026-06-12",estado:"borrador",items:[{productoId:p2,cantidad:20,precio:180000}]},
+  ];
+  save();go("dashboard");toast("Datos de ejemplo cargados");
+}
+
+/* ============ Init ============ */
+renderNav();render();
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
+</script>
+</body>
+</html>

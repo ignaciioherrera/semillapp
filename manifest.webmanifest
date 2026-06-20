@@ -1,0 +1,16 @@
+{
+  "name": "SemillApp — Gestión de planta de semillas",
+  "short_name": "SemillApp",
+  "description": "Costos de producción, inventario, ventas y despacho de bolsas de semilla.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1410",
+  "theme_color": "#2f7d3a",
+  "lang": "es",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
