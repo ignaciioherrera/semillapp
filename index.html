@@ -113,6 +113,7 @@
     <div class="brand"><span class="logo">🌱</span> SemillApp</div>
     <nav class="nav" id="nav"></nav>
     <div class="side-foot">
+      <button class="btn sm" style="width:100%;margin-bottom:8px" onclick="syncModal()">☁ Sincronización</button>
       Datos guardados en este dispositivo.
       <button class="btn sec sm" onclick="backup()">⬇ Exportar respaldo</button>
       <button class="btn ghost sm" onclick="document.getElementById('imp').click()">⬆ Importar respaldo</button>
@@ -596,7 +597,8 @@ function cargarDemo(){
 
 /* ===== Sincronización en la nube ===== */
 const WSKEY="semillapp_ws";
-let wsCode=localStorage.getItem(WSKEY)||"";
+const DEFAULT_WS="sa-677ac29094130e74fa8dbd02615151e9dc1d";
+let wsCode=localStorage.getItem(WSKEY)||DEFAULT_WS;
 let syncState=wsCode?"ok":"off";let pushTimer=null;
 function cloudGet(code){return fetch("/api/data?code="+encodeURIComponent(code),{cache:"no-store"}).then(r=>r.json());}
 function cloudPut(code,obj){return fetch("/api/data?code="+encodeURIComponent(code),{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(obj)}).then(r=>r.json());}
@@ -631,9 +633,20 @@ function syncModal(){
     null);
 }
 
+function syncInit(){
+  if(!wsCode)return Promise.resolve();syncState="sync";
+  return cloudGet(wsCode).then(function(r){
+    var cloud=r&&r.data;
+    if(tieneDatos(cloud)&&(cloud._ts||0)>=(db._ts||0)){
+      db=Object.assign({},JSON.parse(JSON.stringify(blank)),cloud);localStorage.setItem(KEY,JSON.stringify(db));render();
+    } else if(tieneDatos(db)){ doPush(); }
+    syncState="ok";
+  }).catch(function(){syncState="offline";});
+}
+
 /* ===== Init ===== */
 renderNav();render();
-if(wsCode){pullCloud({}).catch(function(){});}
+if(wsCode){syncInit();}
 document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"&&wsCode){pullCloud({});}});
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));}
 </script>
